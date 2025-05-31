@@ -2,11 +2,29 @@ import telebot
 import key_boards
 import fsm
 import ai
+import loguru
+import yaml
+import sys
 
-bot_token = '7890554839:AAEE2cQU30PclJXCcetfBzVBo9ZVIOgz0aA'
+logger = loguru.logger
+
+#load config
+try:
+    with open("./config_2.yaml", 'r') as file:
+        # Захарткоженный путь до конфига
+        cfg = yaml.safe_load(file)
+        logger.info("Успешно загружен конфиг")
+except Exception as e:
+    logger.warning("ПРоизошла ошибка при загрузке конфиша ({})")
+    input()
+    sys.exit(1) #Добавим системный выход из приложения
+
+
+bot_token = cfg['telegram_token']
 stater = fsm.FSM()
-al_service = ai.AI()
+al_service = ai.AI(cfg)
 bot = telebot.TeleBot(bot_token)
+
 
 def handle_default_state(message):
     if message.text == 'фото':
@@ -45,6 +63,14 @@ def return_to_menu(chat_id):
 @bot.message_handler(func=lambda message: True)
 def on_message(message):
     state = stater.get_state(message.chat.id)
+
+    logger.info(
+        "Пользователь [{}:{}] оправил сообщение '{}' в состоянии {}",
+        message.chat.id,
+        message.from_user.first_name,
+        message.text,
+        state
+    )
 
     if state == fsm.default_state:
         handle_default_state(message)
